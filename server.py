@@ -5,6 +5,7 @@ DPG server - simulating vib QC report strings
 import serial
 import time as t
 from datetime import datetime
+import random
 
 # Program Settings
 interval = 5 # seconds
@@ -58,7 +59,7 @@ while True:
     print(line1)
     t.sleep(0.1)
     
-    line2 = "V{},{} D:{:3.0f}% {} s:12 P:{:3.0f}, {:3.0f}d @ {:4.1f}s D:{:3.0f},{:3.0f}% @ {:4.1f}s F:{:3.0f},{:3.0f}% @ {:4.1f}s\r\n".format(group, vibrator, drive, FPMVE, p_mean, p_peak, p_peak_t, d_mean, d_peak, d_peak_t, f_mean, f_peak, f_peak_t)
+    line2 = "V{},{} D:{:3.0f}% {} s:12 P:{:3.0f}, {:3.0f}d @ {:4.1f}s D:{:3.0f},{:3.0f}% @ {:4.1f}s F:{:3.0f},{:3.0f}% @ {:4.1f}s\r\n".format(group, vibrator, drive, FPMVE, p_mean + random.randint(-1,1), p_peak + random.randint(-1,1), p_peak_t + random.randint(-1,1), d_mean  + random.randint(-2,2), d_peak  + random.randint(-2,2), d_peak_t  + random.randint(-2,2), f_mean, f_peak, f_peak_t)
     ser.write(line2.encode())
     print(line2)
     t.sleep(0.1)
