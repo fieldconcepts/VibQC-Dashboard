@@ -7,8 +7,12 @@ import time as t
 from datetime import datetime
 import pandas as pd
 import csv
+import sqlite3
 
-
+def build_queries(row):
+    d = row
+    query = "INSERT INTO vib_data (vp,pc_time,sq,stack,acq,dpg_status,version,dpg_time,grp,vibrator,drive,fpmve,dsd_status,phase_ave,phase_peak,phase_peak_time,dist_ave,dist_peak,dist_peak_time,force_ave,force_peak,force_peak_time) VALUES({},'{}',{},{},{},{},{},'{}',{},{},{},'{}',{},{},{},{},{},{},{},{},{},{})".format(d['VP'], d['PC Time'] ,d['SQ'] ,d['Stack'] ,d['Acq'], d['DPG Status'], d['Version'], d['DPG Time'], d['Group'], d['Vibrator'], d['Drive'], d['FPMVE'], d['DSD Status'], d['Phase Ave'], d['Phase Peak'], d['Phase Peak Time'], d['Dist Ave'], d['Dist Peak'], d['Dist Peak Time'], d['Force Ave'], d['Force Peak'], d['Force Peak Time'])
+    return query
 
 def parse_header_line(line):
     '''
@@ -16,11 +20,12 @@ def parse_header_line(line):
     Header line 80bytes
     SQ# 1 VP#  122.00    ST# 1 A# 1 DPG s:12         VE416 V8.0  08/12/2022 12:24:57
     '''
+    vp = float(line[9:17])
 
     row = {
         "PC Time": (datetime.now().strftime("%d/%m/%Y %H:%M:%S")),
         "SQ": int(line[3:5]),
-        "VP": float(line[9:17]),
+        "VP": int(vp),
         "Stack": int(line[24:26]),
         "Acq": int(line[29:31]),
         "DPG Status": int(line[38:40]),
@@ -54,9 +59,26 @@ def parse_qc_line(line):
         "Force Peak Time": float(line[75:79])
         }
     
+    
     return row
 
 def start_client():
+    
+    
+    # start DB connection
+    conn = sqlite3.connect('vib_db')
+    c = conn.cursor()
+    print("Connecting to db...")
+
+    # Delete old table from previous session
+    #c.execute("DROP TABLE IF EXISTS vib_data")
+    #print("Removing previous session data")
+    
+    # Create fresh tables
+    c.execute("CREATE TABLE IF NOT EXISTS vib_data ([vp] INTEGER PRIMARY KEY, [pc_time] TEXT, [sq] INTEGER, [stack] INTEGER, [acq] INTEGER, [dpg_status] INTEGER, [version] FLOAT, [dpg_time] TEXT, [grp] INTEGER, [vibrator] INTEGER, [drive] INTEGER, [fpmve] TEXT, [dsd_status] INTEGER, [phase_ave] INTEGER, [phase_peak] INTEGER, [phase_peak_time] FLOAT, [dist_ave] INTEGER, [dist_peak] INTEGER, [dist_peak_time] FLOAT, [force_ave] INTEGER, [force_peak] INTEGER, [force_peak_time] FLOAT)")
+    print("Created new tables")
+    
+
     # Serial Port Setup
     ser = serial.Serial(port='COM5',
                         baudrate=9600,
@@ -105,6 +127,12 @@ def start_client():
                 writer.writerow(full_row)
                 f.flush() # need this to update file whilst program is looping
 
+                
+                # Insert rows to SQL Database
+                query = build_queries(full_row)
+                c.execute(query)
+                conn.commit()
+                
                 # reset line read state
                 header_rx = False
                 qc_rx = False
